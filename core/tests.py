@@ -109,9 +109,10 @@ class PerformancePermissionsTest(APITestCase):
     def test_manager_can_create_evaluation(self):
         self.client.force_authenticate(user=self.manager)
         
-        url = "/api/evaluations/"
+        url = "/evaluations/"
         data = {
             "task": self.task.id,
+            "evaluator": self.manager.id,
             "objective_score": 95,
             "subjective_score": 90,
             "feedback": "Great work"
