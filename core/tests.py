@@ -89,12 +89,17 @@ class PerformancePermissionsTest(APITestCase):
             assigned_to=self.employee,
             deadline=timezone.now() + timezone.timedelta(days=1)
         )
+        self.eval_url = reverse('evaluation-list')
+
+    def test_task_creation_logic(self):
+        self.assertEqual(self.task.title, "Final Project Task")
+        self.assertEqual(self.task.assigned_to.role, "employee")
 
     def test_employee_cannot_create_evaluation(self):
         # Log in as employee
         self.client.force_authenticate(user=self.employee)
         
-        url = "/evaluations/"
+
         data = {
             "task": self.task.id,
             "objective_score": 90,
@@ -102,14 +107,13 @@ class PerformancePermissionsTest(APITestCase):
             "feedback": "Trying to evaluate myself"
         }
         
-        response = self.client.post(url, data)
+        response = self.client.post(self.eval_url, data)
         
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
+        
     def test_manager_can_create_evaluation(self):
         self.client.force_authenticate(user=self.manager)
         
-        url = "/evaluations/"
         data = {
             "task": self.task.id,
             "evaluator": self.manager.id,
@@ -118,5 +122,5 @@ class PerformancePermissionsTest(APITestCase):
             "feedback": "Great work"
         }
         
-        response = self.client.post(url, data)
+        response = self.client.post(self.eval_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
