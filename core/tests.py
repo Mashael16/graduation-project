@@ -84,7 +84,7 @@ class PerformancePermissionsTest(APITestCase):
 
         # 3. Create a Task assigned to the employee
         self.task = Task.objects.create(
-            title="Development Task",
+            title="Final Project Task",
             description="Fixing backend bugs",
             assigned_to=self.employee,
             deadline=timezone.now() + timezone.timedelta(days=1)
