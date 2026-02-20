@@ -124,3 +124,47 @@ class PerformancePermissionsTest(APITestCase):
         
         response = self.client.post(self.eval_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_cannot_create_duplicate_evaluation(self):
+        self.client.force_authenticate(user=self.manager)
+
+        data = {
+            "task": self.task.id,
+            "objective_score": 90,
+            "subjective_score": 85,
+            "feedback": "First evaluation"
+        }
+
+        # First creation
+        self.client.post(self.eval_url, data)
+
+        # Second creation (should fail)
+        response = self.client.post(self.eval_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unauthenticated_user_cannot_create_evaluation(self):
+        data = {
+            "task": self.task.id,
+            "objective_score": 90,
+            "subjective_score": 85,
+            "feedback": "No auth"
+        }
+
+        response = self.client.post(self.eval_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_evaluation_invalid_task(self):
+        self.client.force_authenticate(user=self.manager)
+
+        data = {
+            "task": 9999,
+            "objective_score": 90,
+            "subjective_score": 85,
+            "feedback": "Invalid task"
+        }
+
+        response = self.client.post(self.eval_url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
