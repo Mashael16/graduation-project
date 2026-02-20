@@ -32,7 +32,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 class EvaluationViewSet(viewsets.ModelViewSet):
     queryset = Evaluation.objects.all()
     serializer_class = EvaluationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsManager]
 
 # from .serializers import GamificationSerializer
 # class GamificationViewSet(viewsets.ModelViewSet):
