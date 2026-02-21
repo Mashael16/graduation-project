@@ -5,7 +5,7 @@ def create_evaluation(task_id, user, data, serializer_class):
 
     task = get_object_or_404(Task, id=task_id)
 
-    if hasattr(task, 'evaluation'):
+    if Evaluation.objects.filter(task=task).exists():
         return None, "Evaluation already exists"
 
     serializer = serializer_class(data=data)

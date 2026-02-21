@@ -4,8 +4,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from django.contrib.auth import get_user_model
 from .models import Task, Evaluation
+from .services.dashboard_service import get_dashboard_summary
 
 User = get_user_model()
 
@@ -116,7 +116,7 @@ class PerformancePermissionsTest(APITestCase):
         
         data = {
             "task": self.task.id,
-            "evaluator": self.manager.id,
+            # "evaluator": self.manager.id,
             "objective_score": 95,
             "subjective_score": 90,
             "feedback": "Great work"
@@ -168,3 +168,72 @@ class PerformancePermissionsTest(APITestCase):
         response = self.client.post(self.eval_url, data)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+    def test_employee_cannot_view_other_employee_evaluation(self):
+
+        # Create another employee
+        employee_b = User.objects.create_user(
+            username="employee_b",
+            password="123",
+            role="employee"
+        )
+
+        # Create task for employee B
+        task_b = Task.objects.create(
+            title="Task B",
+            description="Other employee task",
+            assigned_to=employee_b,
+            deadline=timezone.now()
+        )
+
+        # Manager creates evaluation for employee B
+        evaluation = Evaluation.objects.create(
+            task=task_b,
+            evaluator=self.manager,
+            objective_score=90,
+            subjective_score=85,
+            feedback="Good"
+        )
+
+        # Log in as employee A
+        self.client.force_authenticate(user=self.employee)
+
+        url = reverse("task-evaluation", args=[task_b.id])
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        
+class DashboardServiceTest(TestCase):
+
+    def setUp(self):
+        self.manager = User.objects.create_user(
+            username="manager_test",
+            password="123",
+            role="manager"
+        )
+
+        self.employee = User.objects.create_user(
+            username="employee_test",
+            password="123",
+            role="employee"
+        )
+
+        # Task for employee
+        Task.objects.create(
+            title="Employee Task",
+            description="Task for employee",
+            assigned_to=self.employee,
+            deadline=timezone.now()
+        )
+
+    def test_employee_dashboard_summary(self):
+        summary = get_dashboard_summary(self.employee)
+
+        self.assertEqual(summary["total_tasks"], 1)
+        self.assertEqual(summary["evaluations"], 0)
+
+    def test_manager_dashboard_summary(self):
+        summary = get_dashboard_summary(self.manager)
+
+        self.assertEqual(summary["total_tasks"], 1)

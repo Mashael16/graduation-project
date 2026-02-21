@@ -11,7 +11,7 @@ router.register('evaluations', EvaluationViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('tasks/<int:task_id>/evaluation/', TaskEvaluation.as_view()),
+    path('tasks/<int:task_id>/evaluation/', TaskEvaluation.as_view(), name='task-evaluation'),
     path('my-tasks/', MyTasksView.as_view()),
     path('my-evaluations/', MyEvaluationsView.as_view()),
     path('dashboard-summary/', DashboardSummaryView.as_view()),

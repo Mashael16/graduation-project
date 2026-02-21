@@ -22,12 +22,14 @@ from .services.evaluation_service import create_evaluation
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self,serializer):
-        if self.request.role != 'manager':
-            raise PermissionDenied("only managers can assign tasks")
-        serializer.save()
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsManager()]
+        return [permissions.IsAuthenticated()]
+
+
 
 class EvaluationViewSet(viewsets.ModelViewSet):
     queryset = Evaluation.objects.all()
@@ -71,7 +73,7 @@ class TaskEvaluation(APIView):
             if task.assigned_to != request.user:
                 return Response(
                     {"error": "You can only view your own evaluations"},
-                    status=status.HTTP_403_FORBIDDEN
+                    status=403
                 )
 
         evaluation = get_object_or_404(Evaluation, task=task)
@@ -104,14 +106,15 @@ class MyTasksView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        user=request.user
 
-        if request.user.role == 'employee':
-            tasks = Task.objects.filter(assigned_to=request.user)
+        if user.role == 'employee':
+            queryset = Task.objects.filter(assigned_to=user)
 
         else: 
-            tasks = Task.objects.all()
+            queryset = Task.objects.all()
 
-        serializer = TaskSerializer(tasks, many=True)
+        serializer = TaskSerializer(queryset, many=True)
         return Response(serializer.data)
 
 class MyEvaluationsView(APIView):
