@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import Task, Evaluation
 from .services.dashboard_service import get_dashboard_summary
+from core.permissions import IsEmployee
 
 User = get_user_model()
 
@@ -31,6 +32,16 @@ class TaskModelTest(TestCase):
         self.assertEqual(self.task.assigned_to.username, "testuser")
         self.assertTrue(isinstance(self.task, Task))
 
+    def test_model_str_methods(self):
+        self.assertEqual(str(self.user), f"{self.user.username} (employee)")
+        
+        self.assertEqual(str(self.task), "CI System Test")
+        
+        evaluation = Evaluation.objects.create(
+            task=self.task,
+            objective_score=90
+        )
+        self.assertEqual(str(evaluation), f"Evaluation for {self.task.title}")
 
 class PerformancePlatformTest(TestCase):
     def setUp(self):
@@ -203,6 +214,13 @@ class PerformancePermissionsTest(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_is_employee_permission(self):
+        
+        permission = IsEmployee()
+        self.assertTrue(permission.has_permission(self.request_mock(self.employee), None))
+     
+        self.assertFalse(permission.has_permission(self.request_mock(self.manager), None))
         
 class DashboardServiceTest(TestCase):
 

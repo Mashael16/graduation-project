@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'rest_framework',
+    'drf_spectacular',
     "core",
 ]
 
@@ -128,9 +129,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 #  this is the industry standard for securing APIs, 
 # especially when connecting to mobile apps or modern frontend frameworks like React.
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
 
 AUTH_USER_MODEL = 'core.User'
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Performance Platform API',
+    'DESCRIPTION': 'API for managing tasks and evaluations for Qassim University Project',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
