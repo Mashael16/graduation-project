@@ -7,4 +7,4 @@ gunicorn
 djangorestframework-simplejwt
 Pillow
 django-environ
-pip freeze
+drf-spectacular
