@@ -7,6 +7,7 @@ from rest_framework.test import APITestCase
 from .models import Task, Evaluation
 from .services.dashboard_service import get_dashboard_summary
 from core.permissions import IsEmployee
+from rest_framework.test import APIRequestFactory
 
 User = get_user_model()
 
@@ -217,11 +218,23 @@ class PerformancePermissionsTest(APITestCase):
     
     def test_is_employee_permission(self):
         
-        permission = IsEmployee()
-        self.assertTrue(permission.has_permission(self.request_mock(self.employee), None))
-     
-        self.assertFalse(permission.has_permission(self.request_mock(self.manager), None))
+        factory = APIRequestFactory()
+        request = factory.get('/') 
+        request.user = self.employee 
         
+        permission = IsEmployee()
+        self.assertTrue(permission.has_permission(request, None))
+        
+    def test_is_employee_permission_fail(self):
+        
+        factory = APIRequestFactory()
+        request = factory.get('/')
+        request.user = self.manager 
+        
+        permission = IsEmployee()
+        self.assertFalse(permission.has_permission(request, None))
+
+
 class DashboardServiceTest(TestCase):
 
     def setUp(self):
