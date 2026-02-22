@@ -3,9 +3,9 @@
 # effectively creating all the necessary API endpoints for the Task model in just a few lines of code.
 
 
-from rest_framework import viewsets,permissions
+from rest_framework import viewsets,permissions,filters
 from .models import Task,Evaluation
-from .serializers import TaskSerializer ,EvaluationSerializer
+from .serializers import TaskSerializer ,EvaluationSerializer,DashboardSummarySerializer
 from .permissions import IsManager
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
@@ -16,25 +16,50 @@ from rest_framework import status
 from django.db.models import Count
 from .services.dashboard_service import get_dashboard_summary
 from .services.evaluation_service import create_evaluation
-
-
+from drf_spectacular.utils import extend_schema
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import EvaluationFilter
 
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.all()
+    filter_backends = [filters.SearchFilter,filters.OrderingFilter]
+    search_fields=["title", "description", "assigned_to__username", "assigned_to__first_name"]
+    
     serializer_class = TaskSerializer
-    # permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Task.objects.select_related("assigned_to")
 
     def get_permissions(self):
         if self.action == "create":
             return [IsManager()]
         return [permissions.IsAuthenticated()]
+    
+
 
 
 
 class EvaluationViewSet(viewsets.ModelViewSet):
-    queryset = Evaluation.objects.all()
+    # queryset =  Evaluation.objects.select_related("task","evaluator")
     serializer_class = EvaluationSerializer
-    permission_classes = [IsManager]
+    filter_backends=[DjangoFilterBackend]
+    filterset_class = EvaluationFilter
+
+    def get_queryset(self):
+        user = self.request.user
+
+        qs = Evaluation.objects.select_related("task", "evaluator")
+
+        if user.role == "manager":
+            return qs
+
+        return qs.filter(task__assigned_to=user)
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return[IsManager()]
+        return[permissions.IsAuthenticated()]
+    
+   
 
 # from .serializers import GamificationSerializer
 # class GamificationViewSet(viewsets.ModelViewSet):
@@ -65,7 +90,9 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
 class TaskEvaluation(APIView):
     permission_classes = [IsAuthenticated]
-
+    @extend_schema(
+        responses=EvaluationSerializer
+    )
     def get(self, request, task_id):
         task = get_object_or_404(Task, id=task_id)
 
@@ -79,7 +106,10 @@ class TaskEvaluation(APIView):
         evaluation = get_object_or_404(Evaluation, task=task)
         serializer = EvaluationSerializer(evaluation)
         return Response(serializer.data)
-
+    @extend_schema(
+        request=EvaluationSerializer,
+        responses=EvaluationSerializer
+    )
     def post(self, request, task_id):
 
         if request.user.role != 'manager':
@@ -104,7 +134,10 @@ class TaskEvaluation(APIView):
 
 class MyTasksView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
+    @extend_schema(
+        responses=TaskSerializer(many=True)
+    )
     def get(self, request):
         user=request.user
 
@@ -119,7 +152,9 @@ class MyTasksView(APIView):
 
 class MyEvaluationsView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @extend_schema(
+            responses=EvaluationSerializer(Evaluation,many=True)
+    )
     def get(self, request):
 
         if request.user.role == 'employee':
@@ -133,9 +168,14 @@ class MyEvaluationsView(APIView):
         return Response(serializer.data)
 
 
+
+
 class DashboardSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=DashboardSummarySerializer
+    )
     def get(self, request):
         data = get_dashboard_summary(request.user)
         return Response(data)

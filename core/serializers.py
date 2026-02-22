@@ -26,3 +26,9 @@ class EvaluationSerializer(serializers.ModelSerializer):
         model = Evaluation
         fields = '__all__'
         # read_only_fields = ['task']
+
+
+class DashboardSummarySerializer(serializers.Serializer):
+    total_tasks = serializers.IntegerField()
+    completed_tasks = serializers.IntegerField()
+    evaluations = serializers.IntegerField()
