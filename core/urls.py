@@ -5,8 +5,8 @@ from .views import TaskViewSet,EvaluationViewSet,TaskEvaluation,MyTasksView,MyEv
 
 
 router = DefaultRouter()
-router.register('tasks', TaskViewSet)
-router.register('evaluations', EvaluationViewSet)
+router.register('tasks', TaskViewSet, basename='task')
+router.register('evaluations', EvaluationViewSet, basename='evaluation')
 
 
 urlpatterns = [

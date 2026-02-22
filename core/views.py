@@ -27,7 +27,13 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
 
     def get_queryset(self):
-        return Task.objects.select_related("assigned_to")
+        user=self.request.user
+        qs=Task.objects.select_related("assigned_to")
+        
+
+        if user.role =='manager':
+            return qs
+        return qs.filter(assigned_to=user)
 
     def get_permissions(self):
         if self.action == "create":
