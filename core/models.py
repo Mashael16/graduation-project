@@ -128,8 +128,8 @@ class Evaluation(models.Model):
 
 
 
-        def __str__(self):
-            return f"Evaluation for {self.task.title}"
+    def __str__(self):
+        return f"Evaluation for {self.task.title}"
 
 
 
