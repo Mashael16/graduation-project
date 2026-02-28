@@ -5,10 +5,13 @@ class User(AbstractUser):
     ROLE_CHOICES = (
         ('employee', 'Employee'),
         ('manager', 'Manager'),
-        ('admin', 'Admin'),
     )
+    GENDER_CHOICES = (
+            ("male", "Male"),
+            ("female", "Female"),
+        )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES , default='employee')
-
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male')
     def __str__(self):
         return f"{self.username} ({self.role})"
     
@@ -34,6 +37,7 @@ class Task(models.Model):
         default='pending'
         )
     created_at = models.DateTimeField(auto_now_add=True)
+    importance_degree = models.IntegerField(default=1)
 
     def __str__(self):
         return self.title
@@ -67,5 +71,67 @@ class Evaluation(models.Model):
     subjective_score = models.FloatField(null=True, blank=True)
     feedback = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    def __str__(self):
-        return f"Evaluation for {self.task.title}"
+
+    final_score = models.FloatField(null=True, blank=True)
+
+    def calculate_final_score(self):
+        from .services.scoring import ruleBase
+
+        task = self.task
+        user = task.assigned_to
+        today = timezone.now().date()
+
+        breach = Breach.objects.filter(
+                user=user,
+                date__month=today.month,
+                date__year=today.year
+            ).order_by("-date").first()
+
+        breach_level = breach.level if breach else None
+
+        attendance = Attendance.objects.filter(
+                user=user,
+                date=today
+            ).first()
+        arrival_time = attendance.arrival_time if attendance else None
+
+
+        data = {
+            "submissionTime": task.created_at,  # مؤقتًا
+            "deadline": task.deadline,
+            "taskNum": 1,
+            "taskComplateAVR": self.objective_score or 0,
+            "startWork": None,
+            "endWork": None,
+            "arrivalTime": arrival_time,
+            "startMeeting": None,
+            "endMeeting": None,
+            "arrivalMeeting": None,
+            "breachLevel": breach_level,
+            "importanceDegree": task.importance_degree,
+        }
+
+        rule = ruleBase(data)
+        return rule.resultScore()
+
+        def save(self, *args, **kwargs):
+            super().save(*args, **kwargs)
+            self.final_score = self.calculate_final_score()
+            super().save(update_fields=["final_score"])
+
+
+
+        def __str__(self):
+            return f"Evaluation for {self.task.title}"
+
+
+
+class Attendance(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+    arrival_time = models.TimeField(null=True, blank=True)
+
+class Breach(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    level = models.IntegerField()
+    date = models.DateField()

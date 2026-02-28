@@ -4,9 +4,9 @@
 
 
 from rest_framework import viewsets,permissions,filters
-from .models import Task,Evaluation
-from .serializers import TaskSerializer ,EvaluationSerializer,DashboardSummarySerializer
-from .permissions import IsManager
+from .models import Task,Evaluation ,Attendance, Breach
+from .serializers import TaskSerializer ,EvaluationSerializer,DashboardSummarySerializer,RegisterSerializer
+from .permissions import IsManager,IsEvaluationOwner
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -19,7 +19,24 @@ from .services.evaluation_service import create_evaluation
 from drf_spectacular.utils import extend_schema
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import EvaluationFilter
+from .services.performance_summary_service import (
+    get_monthly_performance,
+    get_annual_performance
+)
 
+class RegisterView(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Account created successfully"},
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 class TaskViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter,filters.OrderingFilter]
     search_fields=["title", "description", "assigned_to__username", "assigned_to__first_name"]
@@ -63,36 +80,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return[IsManager()]
-        return[permissions.IsAuthenticated()]
+        return[IsEvaluationOwner()]
     
-   
-
-# from .serializers import GamificationSerializer
-# class GamificationViewSet(viewsets.ModelViewSet):
-#     queryset = Gamification.objects.all()
-#     serializer_class = GamificationSerializer
-
-
-
-# class TaskEvaluationView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request, task_id):
-#         evaluation = Evaluation.objects.get(task_id=task_id)
-#         serializer = EvaluationSerializer(evaluation)
-#         return Response(serializer.data)
-
-#     def post(self, request, task_id):
-#         serializer = EvaluationSerializer(data=request.data)
-
-#         if serializer.is_valid():
-#             serializer.save(
-#                 task_id=task_id,
-#                 evaluator=request.user
-#             )
-#             return Response(serializer.data)
-
-#         return Response(serializer.errors, status=400)
 
 class TaskEvaluation(APIView):
     permission_classes = [IsAuthenticated]
@@ -185,3 +174,31 @@ class DashboardSummaryView(APIView):
     def get(self, request):
         data = get_dashboard_summary(request.user)
         return Response(data)
+
+
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "id": request.user.id,
+            "username": request.user.username,
+            "role": request.user.role  
+        })
+
+
+
+class PerformanceSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        user = request.user
+
+        monthly = get_monthly_performance(user)
+        annual = get_annual_performance(user)
+
+        return Response({
+            "monthly": monthly,
+            "annual": annual
+        })

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import TaskViewSet,EvaluationViewSet,TaskEvaluation,MyTasksView,MyEvaluationsView,DashboardSummaryView
+from .views import CurrentUserView,RegisterView,TaskViewSet,EvaluationViewSet,TaskEvaluation,MyTasksView,MyEvaluationsView,DashboardSummaryView
 
 
 
@@ -10,7 +10,10 @@ router.register('evaluations', EvaluationViewSet, basename='evaluation')
 
 
 urlpatterns = [
-    path('', include(router.urls)),
+   
+    path('', include(router.urls)), 
+    path("me/", CurrentUserView.as_view()),
+    path("register/", RegisterView.as_view()),
     path('tasks/<int:task_id>/evaluation/', TaskEvaluation.as_view(), name='task-evaluation'),
     path('my-tasks/', MyTasksView.as_view()),
     path('my-evaluations/', MyEvaluationsView.as_view()),

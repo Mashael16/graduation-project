@@ -39,3 +39,10 @@ class IsOwner(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj.assigned_to == request.user
+
+
+class IsEvaluationOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.user.role =="manager":
+            return True
+        return obj.task.assigned_to == request.user
