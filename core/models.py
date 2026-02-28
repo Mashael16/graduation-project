@@ -22,7 +22,15 @@ class Task(models.Model):
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
     )
-
+    IMPORTANCE_CHOICES = (
+        (1, "High"),
+        (2, "Medium"),
+        (3, "Low"),
+    )
+    importance_degree = models.PositiveSmallIntegerField(
+        choices=IMPORTANCE_CHOICES,
+        default=1
+    )
     title = models.CharField(max_length=255)
     description = models.TextField()
     assigned_to = models.ForeignKey(
@@ -37,7 +45,6 @@ class Task(models.Model):
         default='pending'
         )
     created_at = models.DateTimeField(auto_now_add=True)
-    importance_degree = models.IntegerField(default=1)
 
     def __str__(self):
         return self.title
